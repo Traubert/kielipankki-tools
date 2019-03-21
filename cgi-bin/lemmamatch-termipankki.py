@@ -234,8 +234,8 @@ def process_form(form):
                 this_token = this_token + xml_escape(tag)
                 this_raw_token = this_raw_token + tag
             else:
-                this_token = xml_escape(tag) + this_token
-                this_raw_token = tag + this_raw_token
+                this_token = xml_escape(add_attribute("baseform", token[1], tag)) + this_token
+                this_raw_token = add_attribute("baseform", token[1], tag) + this_raw_token
         sentence += this_token
         raw_sentence += this_raw_token
     if sentence != '':
@@ -272,18 +272,19 @@ def print_content():
         processed_form = "Couldn't process form: " + str(ex)
         raw_text = processed_form
     session_key = hashlib.md5(raw_text.encode("utf-8")).hexdigest()
-    download_button = ''
+    download_buttons = ''
     if processed_form != "":
         write_txt(raw_text, session_key)
-        download_button = '''
+        write_docx(raw_text, session_key, "lemmamatch output")
+        download_buttons = '''
 <div class="row">
-  <div class="col-md-auto">
-    <a class="btn btn-info" role="button" href="{html_root}/kielipankki-tools/tmp/{filename}.txt", download="lemmamatch_result.txt">Download result</a>
+  <div class="col-4">
+    <a class="btn btn-info" role="button" href="{html_root}/kielipankki-tools/tmp/{filename}.txt", download="lemmamatch_result.txt">Download .txt result</a>
+    <a class="btn btn-info" role="button" href="{html_root}/kielipankki-tools/tmp/{filename}.docx", download="lemmamatch_result.docx">Download .docx result</a>
   </div>
-</div>'''.format(html_root = hostname, filename=session_key)
-#          <form onsubmit="download('lemmamatch_result.txt', '{}')">
-#        <input type="submit" value="Download">
-#      </form>
+</div>
+        '''.format(html_root = hostname, filename=session_key)
+
     body += '''
 
 <a href="#help" data-toggle="collapse">Show help</a>
@@ -291,7 +292,7 @@ def print_content():
   <div class="card" style="width: 40rem;">
     <div class="card-body">
       <h4 class="card-title"><u>Help</u></h4>
-      <h6 class="card-subtitle mb-2"></h6>
+      <h6 class="card-subtitle lead"></h6>
       <p class="card-text">
         This variant of the lemmamatch demo demonstrates the tagging of input text with a simple word list. We use entries and categories from The Helsinki Term Bank for the Arts and Sciences to tag each word form which has a lemma matching an entry.
       </p>
@@ -301,7 +302,7 @@ def print_content():
       <p class="card-text">
         An additional table shows the probability of the input text being drawn from the corpus of master's dissertations from each of the major faculties of the University of Helsinki.
       </p>
-      <h6 class="card-subtitle mb-2"></h6>
+      <h6 class="card-subtitle lead"></h6>
       <p class="card-text">
         The scoring of the table represents the Kullback-Leibler divergence between the distribution of lemmas in the input text and the distribution of lemmas in the dissertation corpus.
       </p>
@@ -368,8 +369,8 @@ def print_content():
 {result}
 {downloadbutton}
 <p><small>Page generated in {TIME_SPENT:.2f} seconds</small></p>
-'''.format(result = processed_form, downloadbutton = download_button, lemmalist = lemmalist_text, textareatext = input_text, scriptname = os.path.basename(sys.argv[0]), TIME_SPENT = time.time() - time_start, demo1 = abbreviate_text(demotext_1, n = 100), demo2 = abbreviate_text(demotext_2, n = 100), demo3 = abbreviate_text(demotext_3, n = 100))
-    sys.stdout.buffer.write(wrap_html(make_head("lemmamatch demo", scripts), wrap_in_tags(wrap_in_tags(body, "body", oneline = False), 'div', attribs='class="container-fluid"')).encode("utf-8"))
+'''.format(result = processed_form, downloadbutton = download_buttons, lemmalist = lemmalist_text, textareatext = input_text, scriptname = os.path.basename(sys.argv[0]), TIME_SPENT = time.time() - time_start, demo1 = abbreviate_text(demotext_1, n = 100), demo2 = abbreviate_text(demotext_2, n = 100), demo3 = abbreviate_text(demotext_3, n = 100))
+    sys.stdout.buffer.write(wrap_html(make_head("lemmamatch demo", scripts), wrap_in_tags(wrap_in_tags(body, "body", oneline = False), 'div', attribs='class="container pt-1"')).encode("utf-8"))
 
 if __name__ == '__main__':
     print_content()

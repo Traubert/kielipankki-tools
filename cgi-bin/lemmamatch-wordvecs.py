@@ -247,14 +247,16 @@ def print_content():
     except Exception as ex:
         processed_form = "Couldn't process form: " + str(ex)
         raw_text = processed_form
-    download_button = ''
+    download_buttons = ''
     if processed_form != "":
         session_key = hashlib.md5(raw_text.encode("utf-8")).hexdigest()
         write_txt(raw_text, session_key)
-        download_button = '''
+        write_docx(raw_text, session_key, "lemmamatch output")
+        download_buttons = '''
 <div class="row">
   <div class="col-4">
-    <a class="btn btn-info" role="button" href="{html_root}/kielipankki-tools/tmp/{filename}.txt", download="lemmamatch_result.txt">Download result</a>
+    <a class="btn btn-info" role="button" href="{html_root}/kielipankki-tools/tmp/{filename}.txt", download="lemmamatch_result.txt">Download .txt result</a>
+    <a class="btn btn-info" role="button" href="{html_root}/kielipankki-tools/tmp/{filename}.docx", download="lemmamatch_result.docx">Download .docx result</a>
   </div>
 </div>
         '''.format(html_root = hostname, filename=session_key)
@@ -264,7 +266,7 @@ def print_content():
   <div class="card" style="width: 40rem;">
     <div class="card-body">
       <h4 class="card-title"><u>Help</u></h4>
-      <h6 class="card-subtitle mb-2">Entering input</h6>
+      <h6 class="card-subtitle lead">Entering input</h6>
       <p class="card-text">
         The input text for processing is entered in the text box on the left.
       </p>
@@ -274,7 +276,7 @@ def print_content():
       <p class="card-text">
         Word embeddings may be used with Like() and Unlike()...
       </p>
-      <h6 class="card-subtitle mb-2">Understanding output</h6>
+      <h6 class="card-subtitle lead">Understanding output</h6>
       <p class="card-text">
         The output text shows, in bold, tagged lemmas...
       </p>
@@ -336,8 +338,8 @@ def print_content():
 {result}
 {downloadbutton}
 <p><small>Page generated in {TIME_SPENT:.2f} seconds</small></p>
-'''.format(result = processed_form, downloadbutton = download_button, lemmalist = lemmalist_text, textareatext = input_text, scriptname = os.path.basename(sys.argv[0]), TIME_SPENT = time.time() - time_start)
-    sys.stdout.buffer.write(wrap_html(make_head("lemmamatch demo", scripts), wrap_in_tags(wrap_in_tags(body, "body", oneline = False), 'div', attribs='class="container-fluid"')).encode("utf-8"))
+'''.format(result = processed_form, downloadbutton = download_buttons, lemmalist = lemmalist_text, textareatext = input_text, scriptname = os.path.basename(sys.argv[0]), TIME_SPENT = time.time() - time_start)
+    sys.stdout.buffer.write(wrap_html(make_head("lemmamatch demo", scripts), wrap_in_tags(wrap_in_tags(body, "body", oneline = False), 'div', attribs='class="container pt-1"')).encode("utf-8"))
 
 if __name__ == '__main__':
     print_content()

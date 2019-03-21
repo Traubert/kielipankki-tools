@@ -4,9 +4,12 @@ import time
 import subprocess
 from subprocess import Popen, PIPE
 from xml.sax.saxutils import escape as xml_escape
+import re
+import json
 import openpyxl
 import hashlib
 import textract
+import docx
 
 first = lambda x: x[0]
 second = lambda x: x[1]
@@ -15,9 +18,18 @@ hostname = "http://195.148.30.97"
 wrkdir = "/var/www/kielipankki-tools"
 path_to_tagtools = "/usr/local/bin/"
 
+def mx_auto(t):
+    return wrap_in_tags(wrap_in_tags(t, 'div', attribs='class="col center-block"'), 'div', attribs='class="row mx-auto"')
+
+def add_attribute(key, value, xml_tag):
+    if xml_tag.startswith('<') and xml_tag.endswith('>'):
+        return xml_tag[:-1] + " " + key + '="' + xml_escape(value) + '">'
+    else:
+        return xml_tag
+
 def tokenize(text):
     process = Popen([path_to_tagtools + "finnish-tokenize"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    out, err = process.communicate(input=text.encode("utf-8"))
+    out, err = process.communicate(input=text.replace('\n', '\n\n').encode("utf-8"))
     out_utf8 = out[:-1].decode("utf-8")
     retval = []
     thissent = []
@@ -28,6 +40,7 @@ def tokenize(text):
             thissent = []
             continue
         thissent.append(line)
+#    retval.append([text.replace(' .\n', ' .\n\n').replace('\n', '#')])
     return retval
 
 def clean_tempfiles():
@@ -51,15 +64,40 @@ def text_from_file(form_file):
     uploaded_file_path = os.path.join(wrkdir + "/tmp/", "upload_" + hashcode + ext)
     with open(uploaded_file_path, "wb") as f:
         f.write(form_file.file.read())
-    if ext in ('png', 'jpg', 'gif'):
+    if ext in ('.png', '.jpg', '.jpeg', '.gif', '.tiff'):
         retval = textract.process(uploaded_file_path, encoding="utf-8", extension = ext[1:], method="tesseract", language="fin")
     else:
         retval = textract.process(uploaded_file_path, encoding="utf-8", extension = ext[1:])
     os.remove(uploaded_file_path)
     return retval
     
+def ocr_from_file(form_file, lang):
+    hashcode = hashlib.sha1(str(time.time()).encode("utf-8")).hexdigest()
+    if '.' not in form_file.filename:
+        filename = form_file.filename
+        ext = '.txt'
+    else:
+        filename = form_file.filename[:form_file.filename.rindex('.')]
+        ext = form_file.filename[form_file.filename.rindex('.'):]
+    if ext == '.txt':
+        file_contents = form_file.file.read()
+        try:
+            file_contents.decode("utf-8")
+        except UnicodeDecodeError:
+            file_content = file_contents.decode("latin1").encode("utf-8")
+        return file_contents, hashcode, ''
+    uploaded_file_path = os.path.join(wrkdir + '/tmp/upload_' + hashcode + ext)
+    with open(uploaded_file_path, "wb") as f:
+        f.write(form_file.file.read())
+    if ext in ('.png', '.jpg', '.jpeg', '.gif', 'pdf', 'svg', 'tiff'):
+        retval = textract.process(uploaded_file_path, encoding="utf-8", extension = ext[1:], method="tesseract", language=lang)
+    else:
+        retval = textract.process(uploaded_file_path, encoding="utf-8", extension = ext[1:])
+#    os.remove(uploaded_file_path)
+    return retval, hashcode, "upload_" + hashcode + ext
+    
 def make_doctype():
-    return "Content-type: text/html\n\n<!doctype html>\n"
+    return "<!doctype html>\n" #"Content-type: text/html\n\n<!doctype html>\n"
 
 def pad_rows(rows, upto = None, pad_with = ''):
     if upto == None:
@@ -97,16 +135,22 @@ def make_table(rows, header = [], tdattribs = ""):
             return '{:.3f}'.format(item)
         return str(item)
 
+    def escape(s):
+        if s.startswith('<img src="' + hostname):
+            return s
+        return xml_escape(s)
+    
     retval = ''.join(list(map(lambda x: wrap_in_tags(nice_format(x), 'th'), header)))
     for row in rows:
         this_row = ''
         for item in row:
-            this_row += wrap_in_tags(xml_escape(nice_format(item)), "td", attribs=tdattribs.format(CELL=item))
+            this_row += wrap_in_tags(escape(nice_format(item)), "td", attribs=tdattribs.format(CELL=item))
         retval += wrap_in_tags(this_row, "tr", oneline = False)
     return wrap_in_tags(retval, "table", oneline = False, attribs = "class=table")
 
 def make_tsv(rows):
     return '\n'.join(map('\t'.join, rows))
+rows2tsv = make_tsv
 
 def write_tsv(tsv, session_key):
     with open(wrkdir + "/tmp/" + session_key + ".tsv", "w", encoding = 'utf-8') as f:
@@ -114,7 +158,7 @@ def write_tsv(tsv, session_key):
 
 def write_txt(txt, session_key):
     with open(wrkdir + "/tmp/" + session_key + ".txt", "w", encoding = 'utf-8') as f:
-        f.write(txt)
+        f.write(txt + "\n")
 
 def abbreviate_text(text, n = 60):
     if len(text) <= n:
@@ -176,9 +220,57 @@ def write_excel(rows, filename, title):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = title
-    for row in rows:
-        ws.append(row)
+    if len(rows) > 0 and rows[0][-1] == 'Morphology':
+        ws.append(rows[0])
+        for row in rows[1:]:
+            morpho = row[-1]
+            parts = morpho.replace('\t', '').replace('][', '\t').replace('[', '').replace(']', '').split('\t')
+            POS = ''
+            NUM = ''
+            CASE = ''
+            VOICE = ''
+            MOOD = ''
+            TENSE = ''
+            PERS = ''
+            OTHER = []
+            for part in parts:
+                attrib = part.split('=')[0]
+                if attrib == 'POS':
+                    POS = part
+                elif attrib == 'NUM':
+                    NUM = part
+                elif attrib == 'CASE':
+                    CASE = part
+                elif attrib == 'VOICE':
+                    VOICE = part
+                elif attrib == 'MOOD':
+                    MOOD = part
+                elif attrib == 'TENSE':
+                    TENSE = part
+                elif attrib == 'PERS':
+                    PERS = part
+                else:
+                    OTHER.append(part)
+            this_row = row[:-1]
+            this_row.append(POS)
+            this_row.append(NUM)
+            this_row.append(CASE)
+            this_row.append(VOICE)
+            this_row.append(MOOD)
+            this_row.append(TENSE)
+            this_row.append(PERS)
+            this_row.append('|'.join(OTHER))
+            ws.append(this_row)
+    else:
+        for row in rows:
+            ws.append(row)
     for column_cells in ws.columns:
         length = min(max(len(str(cell.value)) for cell in column_cells), 20)
         ws.column_dimensions[column_cells[0].column].width = length + 3
     wb.save(wrkdir + "/tmp/" + filename + ".xlsx")
+
+def write_docx(txt, session_key, title):
+    document = docx.Document()
+    document.add_heading(title, 0)
+    document.add_paragraph(re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]', '', txt))
+    document.save(wrkdir + "/tmp/" + session_key + ".docx")

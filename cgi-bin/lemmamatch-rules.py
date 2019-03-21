@@ -17,7 +17,7 @@ cgitb.enable()
 
 from kpdemosdev import *
 
-space_eating_punct = '.!?,;'
+space_eating_punct = '.!?,;:'
 
 def wrap_noun(content):
     return wrap_in_tags(content, "span", attribs = 'style="background-color:DodgerBlue;"').strip()
@@ -28,11 +28,16 @@ def wrap_adjective(content):
 def wrap_pronoun(content):
     return wrap_in_tags(content, "span", attribs = 'style="background-color:Violet;"').strip()
 
+# function populateTextField() {
+# document.getElementById("inputted_text").value = "";
+# document.getElementById("lemmalist_text").value = '';
+
+
+
 scripts = ('''
 function populateTextField() {
-document.getElementById("inputted_text").value = "Aamusta iltaan.\\n\\nJoka aamu ja ilta. Aamuin illoin.";
-document.getElementById("lemmalist_text").value = "@bold\\naamu\\nilta\\n\\nMultiWord\\naamu ilta";
-$('#lemmalist_collapse').show()
+document.getElementById("inputted_text").value = "Siks aamusta iltaan lauloi hän,\\nja illalla, mennen maata,\\nei tahtonut, vallaton, vieläkään\\nhän laulustansa laata.\\n\\nSääennusteteksteissä käytetään yleensä tarkkojen kellonaikojen sijasta vuorokaudenaikoja kuvaavia termejä. Ajanilmaukset menevät osittain päällekkäin, ja ne eivät ole aivan tunnin tarkkuudella määriteltyjä.\\n\\nSanallinen ilmaisu kellonaikoina:\\n\\nkeskiyö = klo 24–3.\\n\\naamuyö = klo 2–6.\\n\\naamu = klo 6–9.\\n\\naamupäivä = klo 9–12.\\n\\nkeskipäivä = klo 11–13.\\n\\npäivä = klo 10–17.\\n\\niltapäivä = klo 12–18.\\n\\nilta = klo 17–22.\\n\\niltayö = klo 21–24.\\n\\nyö = klo 22–6.";
+document.getElementById("lemmalist_text").value = '! @bold -lista merkitsee sen jälkeen luetellut sanat\\n! lihavoinnilla.\\n@bold\\naamu\\nilta\\n\\n! Voidaan merkitä myös useamman lemman jonoja, tässä\\n! tägillä MultiWord.\\nMultiWord\\naamu ilta\\n\\n! Käyttämällä sanavektoreita voidaan luoda laajempi lista,\\n! tässä pyytämällä 50 sanaa jotka ovat kuin aamu ja ilta.\\n! Lopuksi poistetaan listasta sanat "aamu" ja "ilta".\\nOtherDayTime\\n[Like(aamu, ilta)^50 - {aamu} - {ilta}]';
 }
 ''',
 '''
@@ -92,6 +97,8 @@ def process_form(form):
                     this_lemmalist = ''
                 else:
                     continue
+            elif line[0] in "!#":
+                continue
             else:
                 this_lemmalist += line + '\n'
         if this_lemmalist != '':
@@ -110,7 +117,7 @@ def process_form(form):
             matchers.append(lemmalist_pmatch_filename)
     inputstring = form["input"].value.strip().encode("utf-8")
     try:
-        process = Popen([wrkdir + "/run-nertag"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        process = Popen([path_to_tagtools + "finnish-postag"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         postag_out, err = process.communicate(input=inputstring)
     except Exception as ex:
         return "<p>Couldn't run postag! (Exception" + str(ex) + ")</p>\n"
@@ -121,12 +128,13 @@ def process_form(form):
             tokens.append(('', '', ['']))
         else:
             parts = line.split('\t')
-            if len(parts) != 4:
+            if len(parts) != 3:
                 tokens.append((parts[0], '', ['']))
                 debuginfo += "postag sent " + line + "<br>"
             else:
                 tokens.append((parts[0], parts[1], [parts[2]]))
-#    debuginfo += '<br>'.join(['\t'.join((parts[0], parts[1], parts[2][0])) for parts in tokens]).replace('\t', 'TAB') + "<br>"
+    debuginfo += str(inputstring, 'utf-8')
+    debuginfo += '<br>'.join(['\t'.join((parts[0], parts[1], parts[2][0])) for parts in tokens]).replace('\t', 'TAB') + "<br>"
         # for line in str(postag_out, "utf-8").split('\n'):
         #     line = line.strip()
         #     if line == '':
@@ -220,7 +228,8 @@ def process_form(form):
     # if len(paragraph) > 0:
     #     result += wrap_in_tags('<br>\n'.join(paragraph), 'p')
     result = wrap_in_tags(result, 'div', attribs = 'class="col-6"')
-    return (wrap_in_tags(result + '\n' + guess_result, 'div', attribs = 'class="row"', oneline = False), raw_result)
+    debuginfo = ""
+    return (wrap_in_tags(result + '\n' + guess_result, 'div', attribs = 'class="row"', oneline = False) + wrap_in_tags(debuginfo, 'p'), raw_result)
 
 def print_content():
     # logfile = open("lemmamatch_log.txt", "wb")
@@ -246,14 +255,16 @@ def print_content():
     except Exception as ex:
         processed_form = "Couldn't process form: " + str(ex)
         raw_text = processed_form
-    download_button = ''
+    download_buttons = ''
     if processed_form != "":
         session_key = hashlib.md5(raw_text.encode("utf-8")).hexdigest()
         write_txt(raw_text, session_key)
-        download_button = '''
+        write_docx(raw_text, session_key, "lemmamatch output")
+        download_buttons = '''
 <div class="row">
   <div class="col-4">
-    <a class="btn btn-info" role="button" href="{html_root}/kielipankki-tools/tmp/{filename}.txt", download="lemmamatch_result.txt">Download result</a>
+    <a class="btn btn-info" role="button" href="{html_root}/kielipankki-tools/tmp/{filename}.txt", download="lemmamatch_result.txt">Download .txt result</a>
+    <a class="btn btn-info" role="button" href="{html_root}/kielipankki-tools/tmp/{filename}.docx", download="lemmamatch_result.docx">Download .docx result</a>
   </div>
 </div>
         '''.format(html_root = hostname, filename=session_key)
@@ -263,7 +274,7 @@ def print_content():
   <div class="card" style="width: 40rem;">
     <div class="card-body">
       <h4 class="card-title"><u>Help</u></h4>
-      <h6 class="card-subtitle mb-2">Entering input</h6>
+      <h6 class="card-subtitle lead">Entering input</h6>
       <p class="card-text">
         The input text for processing is entered in the text box on the left.
       </p>
@@ -273,7 +284,7 @@ def print_content():
       <p class="card-text">
         Word embeddings may be used with Like() and Unlike()...
       </p>
-      <h6 class="card-subtitle mb-2">Understanding output</h6>
+      <h6 class="card-subtitle lead">Understanding output</h6>
       <p class="card-text">
         The output text shows, in bold, tagged lemmas...
       </p>
@@ -303,14 +314,11 @@ def print_content():
           <input class="form-check-input" type="checkbox" value="checked" id="fi_pronouns_check" name="fi_pronouns">
           <label class="form-check-label" for="fi_pronouns_check" style="background-color:Violet;">Finnish pronouns</label>
         </div>
-        <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#lemmalist_collapse" aria-expanded="false" aria-controls="collapseExample">Add your own lemmas</button>
-        <div class="collapse" id="lemmalist_collapse">
-          <textarea name="lemmalist" type="text" rows="10" cols="40" class="form-control" id="lemmalist_text" placeholder="Lemmalist goes here, ex:\n\nFoodName [This will become a tag]\nkokkelipiimä\nmämmi\n\n@bold [These will be bolded]\ntärkeä\nsana">{lemmalist}</textarea>
-          <div class="radio"><label><input type="radio" name="vec_choice" value="ftc_vecs" checked="checked">Word embeddings from FTC newspapers, all lemmas</label></div>
-          <div class="radio"><label><input type="radio" name="vec_choice" value="ftc_smaller_vecs">Word embeddings from FTC newspapers, top 50% lemmas</label></div>
-          <div class="radio"><label><input type="radio" name="vec_choice" value="s24_vecs">Word embeddings from Suomi24 messages, all lemmas</label></div>
-          <div class="radio"><label><input type="radio" name="vec_choice" value="s24_smaller_vecs">Word embeddings from Suomi24 messages, top 150K lemmas</label></div>
-        </div>
+        <textarea name="lemmalist" type="text" rows="10" cols="40" class="form-control" id="lemmalist_text" placeholder="Lemmalist goes here, ex:\n\nFoodName [This will become a tag]\nkokkelipiimä\nmämmi\n\n@bold [These will be bolded]\ntärkeä\nsana">{lemmalist}</textarea>
+        <div class="radio"><label><input type="radio" name="vec_choice" value="ftc_vecs" checked="checked">Word embeddings from FTC newspapers, all lemmas</label></div>
+        <div class="radio"><label><input type="radio" name="vec_choice" value="ftc_smaller_vecs">Word embeddings from FTC newspapers, top 50% lemmas</label></div>
+        <div class="radio"><label><input type="radio" name="vec_choice" value="s24_vecs">Word embeddings from Suomi24 messages, all lemmas</label></div>
+        <div class="radio"><label><input type="radio" name="vec_choice" value="s24_smaller_vecs">Word embeddings from Suomi24 messages, top 150K lemmas</label></div>
       </div>
       <div class="col-2">
         <span class="label label-default">Clickable examples</span>
@@ -333,13 +341,13 @@ def print_content():
           <button type="submit" class="btn btn-default">Submit</button>
         </div>
     </div>
+    {downloadbutton}
   </div>
 </form>
 {result}
-{downloadbutton}
 <p><small>Page generated in {TIME_SPENT:.2f} seconds</small></p>
-'''.format(result = processed_form, downloadbutton = download_button, lemmalist = lemmalist_text, textareatext = input_text, scriptname = os.path.basename(sys.argv[0]), TIME_SPENT = time.time() - time_start)
-    sys.stdout.buffer.write(wrap_html(make_head("lemmamatch demo", scripts), wrap_in_tags(wrap_in_tags(body, "body", oneline = False), 'div', attribs='class="container-fluid"')).encode("utf-8"))
+'''.format(result = processed_form, downloadbutton = download_buttons, lemmalist = lemmalist_text, textareatext = input_text, scriptname = os.path.basename(sys.argv[0]), TIME_SPENT = time.time() - time_start)
+    sys.stdout.buffer.write(wrap_html(make_head("lemmamatch demo", scripts), wrap_in_tags(wrap_in_tags(body, "body", oneline = False), 'div', attribs='class="container pt-1"')).encode("utf-8"))
 
 if __name__ == '__main__':
     print_content()

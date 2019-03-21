@@ -32,7 +32,7 @@ document.getElementById("inputted_text").value = "Urho Kaleva Kekkonen (3. syysk
 # }
 # '''
 
-column_names = ["Surface form", "Lemma", "Named entity tag", "Part of Speech"]
+column_names = ["Surface form", "Lemma", "Named entity tag", "Morphology"]
 
 def print_content():
     time_start = time.time()
@@ -72,11 +72,11 @@ def print_content():
   <div class="card" style="width: 40rem;">
     <div class="card-body">
       <h4 class="card-title"><u>Help</u></h4>
-      <h6 class="card-subtitle mb-2">Entering input</h6>
+      <h6 class="card-subtitle lead">Entering input</h6>
       <p class="card-text">
         You have a choice between three options: enter text in the text box, choose a demo text, or upload a file. A variety of file formats are supported: plain utf-8 text (.txt), and unless the formatting is especially convoluted, .pdf, .doc, .docx, .csv, .epub, .html, .odt, .rtf and .xls files.
       </p>
-      <h6 class="card-subtitle mb-2">Understanding output</h6>
+      <h6 class="card-subtitle lead">Understanding output</h6>
       <p class="card-text">
         The output is presented as a table, which is also available for download as a spreadsheet or TSV (tab separated values) file.
       </p>
@@ -118,7 +118,7 @@ def print_content():
 <p><small>Page generated in {TIME_SPENT:.2f} seconds</small></p>
 '''.format(scriptname = os.path.basename(sys.argv[0]), content = result, TIME_SPENT = time.time() - time_start)
 
-    sys.stdout.buffer.write(wrap_html(make_head(title = 'fintag demo', scripts = (populate_js,)), wrap_in_tags(body, 'div', attribs='class="container-fluid"', oneline = False)).encode("utf-8"))
+    sys.stdout.buffer.write(wrap_html(make_head(title = 'fintag demo', scripts = (populate_js,)), wrap_in_tags(body, 'div', attribs='class="container pt-1"', oneline = False)).encode("utf-8"))
 
 if __name__ == '__main__':
     print_content()

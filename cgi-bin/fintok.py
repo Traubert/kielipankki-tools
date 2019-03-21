@@ -62,26 +62,27 @@ def print_content():
         </div>
         '''.format(html_root = hostname, filename = session_key)
         result += make_table(out_rows, header = column_names) + "\n"
-
     body = wrap_in_tags("finnish-tokenize demo", "h2")
+    body += '<h6>Split running text into tokens.</h6>'
     body += '''
-<h6>Split running text into tokens.</h6>
 <a href="#help" data-toggle="collapse">Show help</a>
 <div class="collapse" id="help">
   <div class="card" style="width: 40rem;">
     <div class="card-body">
       <h4 class="card-title"><u>Help</u></h4>
-      <h6 class="card-subtitle mb-2">Entering input</h6>
+      <h6 class="card-subtitle lead">Entering input</h6>
       <p class="card-text">
         You have a choice between three options: enter text in the text box, choose a demo text, or upload a file. A variety of file formats are supported: plain utf-8 text (.txt), and unless the formatting is especially convoluted, .pdf, .doc, .docx, .csv, .epub, .html, .odt, .rtf and .xls files.
       </p>
-      <h6 class="card-subtitle mb-2">Understanding output</h6>
+      <h6 class="card-subtitle lead">Understanding output</h6>
       <p class="card-text">
         The output is presented as one row per token, with empty rows representing sentence boundaries. Output may be downloaded as text or a spreadsheet.
       </p>
     </div>
   </div>
 </div>
+'''
+    body += '''
 <form method="post" action="/cgi-bin/{scriptname}" enctype="multipart/form-data">
   <div class="form-group">
     <div class="row">
@@ -111,10 +112,14 @@ def print_content():
     {content}
   </div>
 </div>
-<p><small>Page generated in {TIME_SPENT:.2f} seconds</small></p>
+<div class="row">
+  <div class="col-md-auto">
+    <p><small>Page generated in {TIME_SPENT:.2f} seconds</small></p>
+  </div>
+</div>
 '''.format(scriptname = os.path.basename(sys.argv[0]), content = result, TIME_SPENT = time.time() - time_start)
 
-    sys.stdout.buffer.write(wrap_html(make_head(title = 'fintok demo', scripts = (populate_js,)), wrap_in_tags(body, 'div', attribs='class="container-fluid"', oneline = False)).encode("utf-8"))
+    sys.stdout.buffer.write(wrap_html(make_head(title = 'fintok demo', scripts = (populate_js,)), wrap_in_tags(body, 'div', attribs='class="container pt-1"', oneline = False)).encode("utf-8"))
 
 if __name__ == '__main__':
     print_content()
