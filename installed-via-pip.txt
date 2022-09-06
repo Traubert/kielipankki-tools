@@ -1,0 +1,4 @@
+pip3 install textract
+pip3 install python-docx
+pip3 install et_xmlfile
+pip3 install torch
