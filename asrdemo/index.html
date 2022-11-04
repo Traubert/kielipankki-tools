@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <head>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Suomenkielisen puheentunnistuksen demo</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="page-header">
+	<h1>Suomenkielisen puheentunnistuksen demo</h1>
+      </div>
+      <div class="row">
+	<div class="col-8">
+	  <input type="file" accept="audio/*" capture id="recording"/>
+	  <script>
+	    //	    const asr_api_url = "http://kielipankki.rahtiapp.fi/audio/asr/fi/submit_file"
+	    const asr_api_url = "http://localhost:1337/audio/asr/fi/submit_file"
+	    function reqListener () {
+		console.log(this.responseText);
+	    }
+	    const recording = document.getElementById('recording');
+
+	    recording.addEventListener('change', function (e) {
+		const file = e.target.files[0];
+		//const url = URL.createObjectURL(file);
+		// Do something with the audio file.
+		var form = new FormData();
+		form.append("file", file);
+		const asr_api_request = new XMLHttpRequest();
+		asr_api_request.open("POST", asr_api_url, true);
+		asr_api_request.setRequestHeader("Content-Type","multipart/form-data");
+		asr_api_request.setRequestHeader("Accept",
+						"*/*")
+		asr_api_request.addEventListener("load", reqListener)
+		asr_api_request.send(form);
+//		console.log(asr_api_request.responseText);
+	    });
+	  </script>
+
+	  
+    <!-- 	  <audio id="player" controls></audio> -->
+    <!-- 	  <script> -->
+    <!-- 	    const player = document.getElementById('player'); -->
+	    
+    <!-- 	    const handleSuccess = function (stream) { -->
+    <!-- 		if (window.URL) { -->
+    <!-- 		    player.srcObject = stream; -->
+    <!-- 		} else { -->
+    <!-- 		    player.src = stream; -->
+    <!-- 		} -->
+    <!-- 	    }; -->
+	    
+    <!-- 	    navigator.mediaDevices -->
+    <!-- .getUserMedia({audio: true, video: false}) -->
+    <!-- .then(handleSuccess); -->
+    <!-- 	  </script> -->
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
