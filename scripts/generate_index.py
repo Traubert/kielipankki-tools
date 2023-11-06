@@ -78,7 +78,7 @@ categories = [
             },
             {
                 "title": "FinnWordNet",
-                "script": "fiwn.cgi",
+                "script": "fiwn/fiwn.cgi",
                 "description": "Tietokantahaku semanttisesta sanakirjasta",
             },
         ],
