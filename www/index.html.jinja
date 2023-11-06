@@ -1,0 +1,155 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+    <script>function writeEmail() {
+      return '<'+'a'+' '+'h'+'r'+'e'+'f'+'='+"'"+'&'+'#'+'1'+'0'+'9'+';'+'a'+'i'+'l'+'t'+'&'+'#'+'1'+'1'+'1'+';'+
+		       '&'+'#'+'5'+'8'+';'+'%'+'7'+'3'+'%'+'6'+'1'+'&'+'#'+'1'+'0'+'9'+';'+'&'+'#'+'4'+'6'+';'+'h'+'%'+'6'+
+		       '&'+'#'+'4'+'9'+';'+'&'+'#'+'3'+'7'+';'+'7'+'&'+'#'+'5'+'0'+';'+'d'+'w'+'%'+'6'+'9'+'&'+'#'+'9'+'9'+
+		       ';'+'k'+'&'+'#'+'6'+'4'+';'+'&'+'#'+'9'+'9'+';'+'s'+'c'+'&'+'#'+'4'+'6'+';'+'f'+'i'+"'"+'>'+'s'+'a'+
+	'm'+'&'+'#'+'4'+'6'+';'+'h'+'a'+'r'+'d'+'w'+'&'+'#'+'1'+'0'+'5'+';'+'&'+'#'+'9'+'9'+';'+'k'+'&'+'#'+'6'+'4'+';'+'c'+'s'+'c'+'&'+'#'+'4'+'6'+';'+'f'+'&'+'#'+'1'+'0'+'5'+';'+'<'+'/'+'a'+'>'
+    }</script>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="icon" type="image/png" sizes="32x32" href="resources/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="resources/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="resources/favicon-16x16.png" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Kielipankin työkaludemot</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="page-header">
+	<h1>Kielipankin työkaludemot</h1>
+      </div>
+      <div class="row">
+	<div class="col-8">
+          <p>
+	    Tällä sivustolla on kokeiltavissa erilaisia työkaluja ja resursseja joita jalostetaan virallisempaan käyttöön.
+	    Virheraportteja, kehitysehdotuksia ja avunpyyntöjä voi lähettää osoitteeseen 
+	    <script>document.write(writeEmail());</script><noscript>[Osoitteen näkyminen vaatii Javascriptin]</noscript>
+          </p>
+        </div>
+      </div>
+      {%- for category in categories %}
+	<h3 class="pt-4 pb-2">{{ category["title"] }}</h3>
+	{%- for item in category["items"] %}
+	{%- if loop.index0 is divisibleby 3 %}
+	<div class="row">
+	  {%- endif %}
+	  <div class="col-md-3">
+	    <div class="card">
+	      <div class="card-body">
+		<h5 class="card-title">
+		  <a href="cgi-bin/{{ item.script }}">{{ item["title"] }}</a>
+		</h5>
+		<h6 class="card-subtitle mb-2 text-muted">{{ item["description"] }}</h6>
+		{%- if "extra" in item %} {{ item["extra"] }} {% endif %}
+	      </div>
+	    </div>
+	  </div>
+	  {%- if (not loop.first and loop.index0 is divisibleby 3) or loop.last %}
+	{%- endif %}
+	{%- endfor %}
+	</div>
+      {%- endfor %}
+
+            <div class="row">
+	<div class="col-8">
+	  <p>
+	    Seuraavat ovat kehitteillä olevien työkalujen tulosteita, eli esimerkkejä siitä mitä ne tekevät. Jos olet erityisen kiinnostunut niiden tutkimuskäytöstä, ota yhteyttä.
+	  </p>
+	</div>
+      </div>
+      <div class="row p-3">
+	<div class="col-3">
+	  <div class="card">
+	    <div class="card-body">
+	      <h5 class="card-title">
+		Käsitelouhinta
+	      </h5>
+	      <h6 class="card-subtitle mb-2 text-muted">
+		Käsiteluetteloa (tässä tapauksessa <a href="http://tieteentermipankki.fi/">Tieteen Termipankkia</a>) käytetään yhdessä referenssi&shy;korpuksen kanssa (FTC:n sanomalehtiaineisto) löytämään kohdeaineistosta (eri tiede&shy;kuntien opin&shy;näyte&shy;työt) olemassa&shy;olevien termien lähikäsitteitä sekä uusia, kohdeaineistolle ominaisia käsitteitä.
+	      </h6>
+	      <small>
+		<ul>
+		  <li><a href="./termipankki/matemaattis.html">Matemaattis-luonnontieteellinen tdk</a></li>
+		  <li><a href="./termipankki/laaketiede.html">Lääketiede</a></li>
+		  <li><a href="./termipankki/farmasia.html">Farmasia</a></li>
+		  <li><a href="./termipankki/humanistinen.html">Humanistinen tdk</a></li>
+		  <li><a href="./termipankki/valtiotiede.html">Valtiotieteellinen tdk</a></li>
+		</ul>
+	      </small>
+	    </div>
+	  </div>
+	</div>
+	<div class="col-4 col-md-3">
+	  <div class="card">
+	    <div class="card-body">
+	      <h5 class="card-title">
+		<a href="./ylilauta/plot/plots.html">Tekstikategorioiden indusoima semantiikka</a>
+	      </h5>
+	      <h6 class="card-subtitle mb-2 text-muted">Kun korpus on jaettu temaattisiin kategorioihin (tässä Ylilauta -keskustelu&shy;foorumin alaosiot), voidaan tehdä tilas&shy;to&shy;llinen luo&shy;kit&shy;telija jonka tehtävä on oppia arvaamaan, kuuluuko viesti tietyyn kategoriaan (tässä "politiikka") vai ei. Näin voidaan löytää, mitkä viestit muissa kategorioissa muistuttavat tätä maalikategoriaa, (tässä: ovat poliittisia).</h6>
+	    </div>
+	  </div>
+	</div>
+	<div class="col-4 col-md-3">
+	  <div class="card">
+	    <div class="card-body">
+	      <h5 class="card-title">
+		<a href="ylilauta/topics/topics.html">Topiikkimallin esitysmuoto</a>
+	      </h5>
+	      <h6 class="card-subtitle mb-2 text-muted">Tekstikokoelman topiikkien (aiheiden), mallintamiseen tarkoitetut menetelmät antavat tavallisesti kullekin tekstille jakauman siitä, millä todennäköisyydellä se kuhunkin topiikkiin kuuluu, sekä luettelon sanoista joiden ehdollinen toden&shy;näköisyys esiintyä tietyn topiikin teksteissä on erityisen suuri. Tässä esimerkissä edellisen esimerkin poliittiset viestit kaikista aihealueista on luokiteltu topiikkeihin, topiikkien jakaumat esitetty visuaalisesti sekä topiikkien sisältösanat esitetty sanaluokittain.</h6>
+	    </div>
+	  </div>
+	</div>
+      </div>
+      <div class="row">
+	<div class="col-8">
+	  <p>
+	    Tarjolla on myös vanhempia työkaluja joita ei aktiivisesti kehitetä:
+	  </p>
+	</div>
+      </div>
+      <div class="row p-3">
+	<div class="col-4 col-md-3">
+	  <div class="card">
+	    <div class="card-body">
+	      <h5 class="card-title">
+		<a href="cgi-bin/omor/omordemo.bash">HFST:n monikielinen morfologiakokoelma</a>
+	      </h5>
+	      <h6 class="card-subtitle mb-2 text-muted">Morfologista analyysiä lukuisista kielistä; joistain myös synonyymejä, oikeinkirjoitusta, käännös- ja tavutussanakirjoja</h6>
+	    </div>
+	  </div>
+	</div>
+
+	<div class="col-4 col-md-3">
+	  <div class="card">
+	    <div class="card-body">
+	      <h5 class="card-title">
+		<a href="cgi-bin/hfst-tagger/tagger-demo.cgi">HFST POS-taggers</a>
+	      </h5>
+	      <h6 class="card-subtitle mb-2 text-muted">Sanaluokan tunnistus juoksevasta tekstistä suomeksi, englanniksi ja ruotsiksi</h6>
+	    </div>
+	  </div>
+	</div>
+      </div>
+      
+      <div class="row"><hr /></div>
+      <div class="row">
+	<div class="col-6">
+	  <div class="card">
+	    <div class="card-body">
+	      <h5 class="card-title">
+		Voit viitata tähän verkkopalveluun seuraavasti:
+	      </h5>
+	      <div class="card-text">
+		Helsingin yliopisto, Digitaalisten ihmistieteiden osasto (2019). <i>Kielipankin työkaludemot</i> [verkkopalvelu]. Kielipankki. Käytettävissä osoitteessa http://www.kielipankki.fi/tyokalut osiossa "Kielipankin työkaludemoja".
+	      </div>
+	    </div>
+	  </div>
+	</div>
+      </div>
+    </div>
+  </body>
+</html>
