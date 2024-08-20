@@ -13,7 +13,7 @@ cgitb.enable()
 #import urllib
 import hashlib
 
-from kpdemosdev import *
+from kpdemos import *
 
 def print_content():
     jobid = None

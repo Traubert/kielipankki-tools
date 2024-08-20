@@ -11,7 +11,7 @@ import math
 import cgitb
 cgitb.enable()
 
-from kpdemosdev import *
+from kpdemos import *
 
 # populate_js = '''
 # function processingTextField(demofile) {{

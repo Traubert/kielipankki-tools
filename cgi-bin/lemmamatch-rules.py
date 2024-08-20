@@ -15,7 +15,7 @@ import json
 import cgitb
 cgitb.enable()
 
-from kpdemosdev import *
+from kpdemos import *
 
 space_eating_punct = '.!?,;:'
 

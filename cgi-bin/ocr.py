@@ -9,7 +9,7 @@ import os
 import cgitb
 cgitb.enable()
 
-from kpdemosdev import *
+from kpdemos import *
 
 def print_content():
     time_start = time.time()
