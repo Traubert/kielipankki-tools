@@ -32,7 +32,62 @@ document.getElementById("inputted_text").value = "Urho Kaleva Kekkonen (3. syysk
 # }
 # '''
 
-column_names = ["Surface form", "Lemma", "Named entity tag", "Morphology"]
+def rewrite_bio(tag):
+    if tag == 'O':
+        return ''
+    return tag
+
+def rewrite_finer_to_bio(rows):
+    def xml2bio(tag):
+        if 'Prs' in tag: return 'PER'
+        elif 'Loc' in tag: return 'LOC'
+        elif 'Org' in tag: return 'ORG'
+        else: return 'MISC'
+
+    tag, state = '', 'O'
+    for row in rows:
+        if row[3].startswith('</'):
+            tag = xml2bio(row[3][2:-1])
+            row[3] = 'I-' + tag
+            state = 'O'
+        elif row[3].endswith('/>'):
+            tag = xml2bio(row[3][1:-2])
+            row[3] = 'B-' + tag
+            state = 'O'
+        elif row[3].startswith('<'):
+            tag = xml2bio(row[3][1:-1])
+            row[3] = 'B-' + tag
+            state = 'I'
+        else:
+            if state == 'I':
+                row[3] = 'I-' + tag
+            else:
+                row[3] = ''
+
+def rewrite_finer_col_to_xbio(cols):
+    retval = []
+    tag, state = '', 'O'
+    for col in cols:
+        if col.startswith('</'):
+            tag = col[2:-1]
+            retval.append('I-' + tag)
+            state = 'O'
+        elif col.endswith('/>'):
+            tag = col[1:-2]
+            retval.append('B-' + tag)
+            state = 'O'
+        elif col.startswith('<'):
+            tag = col[1:-1]
+            retval.append('B-' + tag)
+            state = 'I'
+        else:
+            if state == 'I':
+                retval.append('I-' + tag)
+            else:
+                retval.append('')
+    return retval
+                
+column_names = ["Surface form", "Lemma", "Morphology", "Modern named entity", "Extended modern named entity", "Historical Named Entity"]
 
 def print_content():
     time_start = time.time()
@@ -45,12 +100,26 @@ def print_content():
     if "file" in form and form["file"].filename != "":
         inputval = text_from_file(form["file"])
     if inputval != "":
+#        nertagger = form["lang"].value
         process = Popen([wrkdir + "/run-nertag"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         out, err = process.communicate(input=inputval)
         session_key = hashlib.md5(out).hexdigest()
-        out_rows = permute_rows(tsv2rows(out.decode("utf-8")), (0, 1, 3, 2))
-#        orig_rows = tsv2rows(out.decode("utf-8"))
-#        out_rows = orig_rows
+        out_rows = tsv2rows(out.decode('utf-8'))#permute_rows(tsv2rows(out.decode("utf-8")), (0, 1, 3, 2))
+        extended_tags = extract_column(out_rows, 3)
+#        log(str(out_rows))
+        extended_tags = rewrite_finer_col_to_xbio(extended_tags)
+        rewrite_finer_to_bio(out_rows)
+        tokens = ' '.join(extract_column(out_rows, 0))
+        process = Popen([wrkdir + "/run-hisner-prs-loc"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        out, err = process.communicate(input=tokens.encode('utf-8'))
+        hisner_prs_loc_tags = map(rewrite_bio, extract_column(tsv2rows(out.decode('utf-8')), 1))
+        process = Popen([wrkdir + "/run-hisner-org"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        out, err = process.communicate(input=tokens.encode('utf-8'))
+        hisner_org_tags = map(rewrite_bio, extract_column(tsv2rows(out.decode('utf-8')), 1))
+        hisner_tags = zip(hisner_prs_loc_tags, hisner_org_tags)
+        hisner_tags = list(map(lambda x: x[0] + " " + x[1], hisner_tags))
+        out_rows = paste_new_column(out_rows, extended_tags)
+        out_rows = paste_new_column(out_rows, hisner_tags)
         write_excel([column_names] + out_rows, session_key, "Output from fintag")
         write_tsv(make_tsv([column_names] + out_rows), session_key)
         result += "<p>Result:</p>\n"
@@ -66,7 +135,7 @@ def print_content():
 
     body = wrap_in_tags("fintag demo", "h2")
     body += '''
-<h6>Annotate running text with FinnPos and FiNER.</h6>
+<h6>Annotate running text with FinnPos, FiNER and HisNER.</h6>
 <a href="#help" data-toggle="collapse">Show help</a>
 <div class="collapse" id="help">
   <div class="card" style="width: 40rem;">
@@ -81,8 +150,17 @@ def print_content():
         The output is presented as a table, which is also available for download as a spreadsheet or TSV (tab separated values) file.
       </p>
       <p class="card-text">
-        The table has five columns. The first shows the token (word, punctuation unit, url... whatever the tokenizer consideres to be one token) as it appeared in the original text. The second column shows the lemma, or base form, of the token. The next column shows the most likely morphological tags for the token. The final two columns represent named entities; the first one contains tags for persons, organisations and locations, the second contains everything else (mostly time expressions and events).
+        The table has five columns. The first shows the token (word, punctuation unit, url... whatever the tokenizer consideres to be one token) as it appeared in the original text. The second column shows the lemma, or base form, of the token. The next column shows the most likely morphological tags for the token. The final two columns represent named entitiesin BIO notation; the first one comes from FiNER, a rule-based tagger for contemporary Finnish text (rules written by Pekka Kauppinen, see <a href="https://link.springer.com/article/10.1007/s10579-019-09471-7">Ruokolainen et al.</a>), and the second from a Stanford NER tagger trained on historical (19th century) Finnish texts, see <a href="https://aclweb.org/anthology/W17-0204/">Kettunen and Löfberg</a>.
       </p>
+      <h6 class="card-subtitle lead">References</h6>
+    <p class="card-text">
+    <ul>
+    <li>Persistent Identifier of the tool: <a href="http://urn.fi/urn:nbn:fi:lb-201908161">http://urn.fi/urn:nbn:fi:lb-201908161</a></li>
+    <li>Software access location: <a href="http://urn.fi/urn:nbn:fi:lb-201908162">http://urn.fi/urn:nbn:fi:lb-201908162</a></li>
+    <li>FiNER publication: <a href="https://link.springer.com/article/10.1007/s10579-019-09471-7">https://link.springer.com/article/10.1007/s10579-019-09471-7</a></li>
+    <li>There is a docker container of finnish-tagtools here: <a href="https://github.com/SemanticComputing/finer-docker">https://github.com/SemanticComputing/finer-docker</a></li>
+    </ul>
+    </p>
     </div>
   </div>
 </div>
@@ -102,6 +180,7 @@ def print_content():
         <input type="file" class="form-control-file" name="file" id="submit_file">
       </div>
     </div>
+
     <div class="row">
       <div class="col-md-auto">
         <button type="submit" class="btn btn-primary" id="submit_button">Submit</button>

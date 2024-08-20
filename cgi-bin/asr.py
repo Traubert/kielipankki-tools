@@ -38,11 +38,14 @@ def print_content():
     if ("file" in form and form["file"].filename != ""):
         filename = form["file"].filename
         inputfile = form["file"]
-        files = {'file': (filename, inputfile.file, 'application/octet-stream'),
+        files = {'file': (filename, inputfile.file),
                           'Content-Disposition': 'form-data; name="file"; filename="' + filename + '"',
-                          'Content-Type': 'application/octet-stream'}
+                          'Content-Type': 'multipart/form-data'}
+        # files = {'file': (filename, inputfile.file, 'application/octet-stream'),
+        #          'Content-Disposition': 'form-data; name="file"; filename="' + filename + '"',
+        #          'Content-Type': 'application/octet-stream'}
+
         # audiobytes = inputfile.file.read()
-        # log(str(len(audiobytes)) + " bytes")
         submit_url = 'http://kielipankki.rahtiapp.fi/audio/asr/fi/submit_file'
         # submit_url = 'http://kielipankki.rahtiapp.fi/audio/asr/fi/segmented'
         try:
@@ -68,9 +71,17 @@ def print_content():
             else:
                 done = True
                 all_words = []
+                session_key = jobid
+                time_spent = j["processing_finished"] - j["processing_started"]
+                result = '<h3>Full transcript:</h3><div class="text-wrap" style="width: 80rem;"><hr><p class="text">{FULL_TRANSCRIPT}</p><hr></div><p><small>Decoding completed in {TIME_SPENT:.2f} seconds</small></p>'
+                result += '''
+                <div class="row">
+                <div class="col-md-auto py-4">
+                <a class="btn btn-info" href="https://kielipankki.fi/tools/demo/kielipankki-tools/tmp/{filename}.tsv" download="asr_result.tsv" role="button">Download TSV</a></div></div>
+            '''.format(html_root = hostname, filename = session_key)
+
             json_result = j["result"]
             transcripts = []
-            # result += '<div class="text-wrap" style="width: 80rem;"><p class="text">{FULL_TRANSCRIPT}</p></div>'
             for section in json_result["sections"]:
                 start_time = float(section["start"])
                 result += wrap_in_tags(wrap_in_tags(section["transcript"], 'p'), 'b')
@@ -81,7 +92,8 @@ def print_content():
                         all_words.append(words[-1])
                 result += make_table(words, header = columns) + "\n"
                 transcripts.append(section["transcript"])
-            result = result.format(FULL_TRANSCRIPT = ' '.join(transcripts))
+            if done:
+                result = result.format(FULL_TRANSCRIPT = '\n<br>'.join(transcripts), TIME_SPENT=time_spent)
                 
             # if ("status" in j and j["status"] == "pending") or ("done" in j and j["done"] == False):
             #     continue
@@ -91,13 +103,7 @@ def print_content():
         result_rows = []
 
         if done:
-            session_key = jobid
             write_tsv(make_tsv([columns] + all_words), session_key)
-            result += '''
-            <div class="row">
-            <div class="col-md-auto">
-            <a class="btn btn-info" href="https://kielipankki.fi/tools/demo/cgi-bin/tmp/{filename}.tsv" download="asr_result.tsv" role="button">Download TSV</a></div></div>
-            '''.format(html_root = hostname, filename = session_key)
 
         # write_excel([column_names] + out_rows, session_key, "Output from fintag")
             
@@ -117,18 +123,13 @@ def print_content():
     <div class="card-body">
       <h4 class="card-title"><u>Help</u></h4>
       <h6 class="card-subtitle lead">Entering input</h6>
-      <p class="card-text">
+      <p class="card-text">Currently, only file uploads are supported. Any format known to ffmpeg may work, but wav and mp3 have been tested.
       </p>
       <h6 class="card-subtitle lead">Understanding output</h6>
-      <p class="card-text">
+      <p class="card-text">The audio is split into chunks separated by silence. These chunks are processed separately, in parallel. The output shows them in the correct order. Tabular output shows <ol><li>The full recognized text, once it is ready</li><li>The recognized chunks, as they are completed</li><li>A table with each word in the chunk, with time information</li></ol>
       </p>
-      <p class="card-text">
+      <p class="card-text">When results are complete, a tsv file with all the timing information is generated for downloading.
       </p>
-      <h6 class="card-subtitle lead">References</h6>
-    <p class="card-text">
-    <ul>
-    </ul>
-    </p>
     </div>
   </div>
 </div>

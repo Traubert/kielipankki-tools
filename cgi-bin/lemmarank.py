@@ -7,25 +7,40 @@ import time
 import hashlib
 import os
 import re
-from math import log
+import math
 import cgitb
 cgitb.enable()
 
 from kpdemosdev import *
 
-populate_js = '''
-function processingTextField(demofile) {{
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {{
-    if (this.readyState == 4 && this.status == 200) {{
-      document.getElementById("inputted_text").value =
-        this.responseText;
-      }}
-    }};
-  xhttp.open("GET", "{HOSTNAME}/resources/" + demofile, true);
-  xhttp.send();
-}}
-'''.format(HOSTNAME=hostname)
+# populate_js = '''
+# function processingTextField(demofile) {{
+#   var xhttp = new XMLHttpRequest();
+#   xhttp.onreadystatechange = function() {{
+#     if (this.readyState == 4 && this.status == 200) {{
+#       document.getElementById("inputted_text").value =
+#         this.responseText;
+#       }}
+#     }};
+#   xhttp.open("GET", "{HOSTNAME}/resources/" + demofile, true);
+#   xhttp.send();
+# }}
+# '''.format(HOSTNAME=hostname)
+
+def escape_js_string(s):
+    return s.replace('"', '\\"').replace('\n', '\\n')
+
+populate_js1 = '''
+function populateTextField1() {
+document.getElementById("inputted_text").value = "''' + escape_js_string(open('../resources/perustuslaki.txt', encoding = 'utf-8').read()) + '''";
+}
+'''
+
+populate_js2 = '''
+function populateTextField2() {
+document.getElementById("inputted_text").value = "''' + escape_js_string(open('../resources/kekkonen.txt', encoding = 'utf-8').read()) + '''";
+}
+'''
 
 colors = ('red', 'orange', 'yellow', 'green', 'blue', 'purple', 'grey', 'rust')
 utils_js = '''
@@ -114,6 +129,7 @@ def process_input(inputval):
         out, err = process.communicate(input=inputval)
         session_key = hashlib.md5(out).hexdigest()
         out_rows = tsv2rows(out.decode("utf-8"))
+#        return(str(inputval))
         surfaces = extract_column(out_rows, 0)
         lemmas = extract_column(out_rows, 1)
         tags = extract_column(out_rows, 2)
@@ -168,7 +184,7 @@ def process_input(inputval):
             for key, value in worddict.items():
                 if value == 1:
                     continue
-                freqlist.append((key, -1*log(float(value)/n_lemmas)))
+                freqlist.append((key, -1*math.log(float(value)/n_lemmas)))
             freqlist.sort(key = lambda pair: pair[1])
         nouns_in_gold_scored = []
         verbs_in_gold_scored = []
@@ -199,8 +215,9 @@ def process_input(inputval):
 #            write_excel([column_names] + result_rows, session_key, "Output from lemmarank")
 #            write_tsv(make_tsv([column_names] + result_rows), session_key)
     except Exception as ex:
-#        sys.stdout.buffer.write(wrap_html(make_head(title = "lemmarank error"), wrap_in_tags("<p>Got exception " + str(ex) + "</p>\n", "body", oneline = False)).encode("utf-8"))
-        return wrap_html(make_head(title = "lemmarank error"), wrap_in_tags("<p>Got exception " + str(ex) + "</p>\n", "body", oneline = False)).encode("utf-8")
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        return "<p>Got exception " + str(ex) + " in file " + str(fname) + " line " + str(exc_tb.tb_lineno) + "</p>\n"
 
         # result += '''
         # <div class="row">
@@ -353,11 +370,11 @@ def print_content():
   <div class="card" style="width: 40rem;">
     <div class="card-body">
       <h4 class="card-title"><u>Help</u></h4>
-      <h6 class="card-subtitle mb-2">Entering input</h6>
+      <h6 class="card-subtitle lead">Entering input</h6>
       <p class="card-text">
         You have a choice between three options: enter text in the text box, choose one of the demo text options, or upload a file. A variety of file formats are supported: plain utf-8 text (.txt), and unless the formatting is especially convoluted, .pdf, .doc, .docx, .csv, .epub, .html, .odt, .rtf and .xls files.
       </p>
-      <h6 class="card-subtitle mb-2">Understanding output</h6>
+      <h6 class="card-subtitle lead">Understanding output</h6>
       <p class="card-text">
         The output is represented in two ways: a table and a dynamic graph.
       </p>
@@ -382,8 +399,8 @@ def print_content():
         <div class="dropdown" name="demotext">
           <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><b>Or</b> select demo text</button>
           <div class="dropdown-menu">
-            <div class="dropdown-item" onclick="processingTextField('perustuslaki.txt')">Constitution of the Finnish republic</div>
-            <div class="dropdown-item" onclick="processingTextField('kekkonen.txt')")">Urho Kekkonen Wikipedia page</div>
+            <div class="dropdown-item" onclick="populateTextField1()">Constitution of the Finnish republic</div>
+            <div class="dropdown-item" onclick="populateTextField2()")">Urho Kekkonen Wikipedia page</div>
           </div>
         </div>
       </div>
@@ -402,7 +419,7 @@ def print_content():
 {content}
 <p><small>Page generated in {TIME_SPENT:.2f} seconds</small></p>
 '''.format(scriptname = os.path.basename(sys.argv[0]), content = result, TIME_SPENT = time.time() - time_start)
-    sys.stdout.buffer.write(wrap_html(make_head(title = 'lemmarank demo', scripts = (populate_js, utils_js)), wrap_in_tags(body, 'div', attribs='class="container-fluid"')).encode("utf-8"))
+    sys.stdout.buffer.write(wrap_html(make_head(title = 'lemmarank demo', scripts = (populate_js1, populate_js2, utils_js)), wrap_in_tags(body, 'div', attribs='class="container pt-1"')).encode("utf-8"))
 
 if __name__ == '__main__':
     print_content()
